@@ -1,0 +1,19 @@
+---
+- name: Configure BGP Aggregate Address on Border Router
+  hosts: localhost
+  gather_facts: no
+  connection: network_cli
+  vars_files:
+    - ../credentials.yml
+    - ./vars/border_aggregate_vars.yml
+
+  tasks:
+    - name: Render BGP Aggregate Configuration
+      template:
+        src: ./jinja_templates/border_aggregate.j2
+        dest: /tmp/bgp_aggregate.cfg
+
+    - name: Apply BGP Aggregate Configuration to Device
+      ios_config:
+        src: /tmp/bgp_aggregate.cfg
+        save_when: modified

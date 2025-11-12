@@ -1,0 +1,16 @@
+router bgp {{ bgp_as }}
+!
+{% for vrf in vrfs %}
+ address-family ipv4 vrf {{ vrf.name }}
+{%   for aggr in vrf.ipv4_aggregates %}
+  aggregate-address {{ aggr.prefix }} {{ aggr.mask }} summary-only
+{%   endfor %}
+ exit-address-family
+ !
+ address-family ipv6 vrf {{ vrf.name }}
+{%   for aggr in vrf.ipv6_aggregates %}
+  aggregate-address {{ aggr.prefix }} summary-only
+{%   endfor %}
+ exit-address-family
+!
+{% endfor %}

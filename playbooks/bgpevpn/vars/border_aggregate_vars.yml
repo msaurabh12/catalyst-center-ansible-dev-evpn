@@ -1,0 +1,13 @@
+---
+bgp_as: 1001
+
+vrfs:
+  - name: l3vn-1
+    ipv4_aggregates:
+      - prefix: 178.0.0.0
+        mask: 255.0.0.0
+      - prefix: 177.0.1.0
+        mask: 255.255.255.0
+    ipv6_aggregates:
+      - prefix: 2001:177:0:1::/64
+      - prefix: 2001:177::/32
