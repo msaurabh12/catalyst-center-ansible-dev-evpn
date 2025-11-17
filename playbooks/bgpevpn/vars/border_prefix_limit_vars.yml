@@ -1,0 +1,11 @@
+bgp:
+  asn: 1001
+
+  vrfs:
+    - name: "l3vn-1"
+
+      ipv4_prefix_limit:
+        advertise_evpn: 5000
+
+      ipv6_prefix_limit:
+        advertise_evpn: 5000

@@ -1,0 +1,16 @@
+router bgp {{ bgp.asn }}
+
+{% for vrf in bgp.vrfs %}
+ address-family ipv4 vrf {{ vrf.name }}
+{% if vrf.ipv4_prefix_limit is defined and vrf.ipv4_prefix_limit.advertise_evpn is defined %}
+  advertise l2vpn evpn {{ vrf.ipv4_prefix_limit.advertise_evpn }}
+{% endif %}
+ exit-address-family
+
+ address-family ipv6 vrf {{ vrf.name }}
+{% if vrf.ipv6_prefix_limit is defined and vrf.ipv6_prefix_limit.advertise_evpn is defined %}
+  advertise l2vpn evpn {{ vrf.ipv6_prefix_limit.advertise_evpn }}
+{% endif %}
+ exit-address-family
+
+{% endfor %}
