@@ -45,6 +45,7 @@
           - bgp.address_families | length > 0
           - bgp.address_families | selectattr('vrf', 'defined') | list | length == bgp.address_families | length
           - bgp.address_families | selectattr('type', 'defined') | list | length == bgp.address_families | length
+          
     - name: Deploy Directly Connected Endpoints
       vars:
         mac_address: "{{ item.mac_address }}"
