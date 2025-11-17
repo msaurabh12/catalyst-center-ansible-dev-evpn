@@ -9,7 +9,6 @@
     - ./vars/directly_connected_endpoint.yml
 
   tasks:
-
     - name: Validate BGP ASN
       ansible.builtin.assert:
         that:
@@ -46,13 +45,44 @@
           - bgp.address_families | length > 0
           - bgp.address_families | selectattr('vrf', 'defined') | list | length == bgp.address_families | length
           - bgp.address_families | selectattr('type', 'defined') | list | length == bgp.address_families | length
-
-    - name: Render border handoff configuration
-      ansible.builtin.template:
-        src: ./jinja_templates/directly_connected_endpoint.j2
-        dest: configs/border_handoff_{{ inventory_hostname }}.cfg
-
-    - name: Push border handoff configuration to device
-      cisco.ios.ios_config:
-        src: configs/border_handoff_{{ inventory_hostname }}.cfg
-        save_when: modified
+    - name: Deploy Directly Connected Endpoints
+      vars:
+        mac_address: "{{ item.mac_address }}"
+        rendered_directly_connected_endpoints: "{{ lookup('template', './jinja_templates/directly_connected_endpoint.j2') }}"
+      cisco.dnac.template_workflow_manager:
+        dnac_host: "{{ dnac_host }}"
+        dnac_port: "{{ dnac_port }}"
+        dnac_username: "{{ dnac_username }}"
+        dnac_password: "{{ dnac_password }}"
+        dnac_verify: "{{ dnac_verify }}"
+        dnac_version: "{{ dnac_version }}"
+        dnac_debug: "{{ dnac_debug }}"
+        dnac_log_level: DEBUG
+        dnac_log: true
+        config_verify: true
+        state: merged
+        config:
+          - configuration_templates:
+              project_name: "evpn_directly_connected_endpoints"
+              template_name: "evpn_evpn_directly_connected_endpoints_template_{{ item.ip }}"
+              template_content: "{{ rendered_directly_connected_endpoints }}"
+              version_description: "Auto-generated Directly connected endpoints config for {{ item.ip }}"
+              language: JINJA
+              software_type: "IOS-XE"
+              device_types:
+                - product_family: "Switches and Hubs"
+          - deploy_template:
+              project_name: "evpn_directly_connected_endpoints"
+              template_name: "evpn_directly_connected_endpoint_{{ item.ip }}"
+              force_push: true
+              template_parameters:
+                - param_name: "vlan_id"
+                  param_value: "1431"
+                - param_name: "vlan_name"
+                  param_value: "testvlan31"
+              device_details:
+                device_ips:
+                  - "{{ item.ip }}"
+      loop: "{{ devices | default([{'ip': device_ip, 'mac_address': mac_address}]) }}"
+      loop_control:
+        label: "{{ item.ip }}"    

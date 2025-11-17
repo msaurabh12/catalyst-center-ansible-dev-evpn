@@ -9,7 +9,6 @@
     - ./vars/vrf_lite.yml
 
   tasks:
-
     - name: Validate BGP ASN input
       ansible.builtin.assert:
         that:
