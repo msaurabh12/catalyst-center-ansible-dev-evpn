@@ -1,16 +1,19 @@
-router bgp {{ bgp_as }}
-!
-{% for vrf in vrfs %}
+router bgp {{ bgp.asn }}
+
+{% for vrf in bgp.vrfs %}
  address-family ipv4 vrf {{ vrf.name }}
-{%   for aggr in vrf.ipv4_aggregates %}
-  aggregate-address {{ aggr.prefix }} {{ aggr.mask }} summary-only
+{% if vrf.ipv4_aggregates is defined %}
+{%   for agg in vrf.ipv4_aggregates %}
+  aggregate-address {{ agg.prefix }} {{ agg.mask }} summary-only
 {%   endfor %}
+{% endif %}
  exit-address-family
- !
+
  address-family ipv6 vrf {{ vrf.name }}
-{%   for aggr in vrf.ipv6_aggregates %}
-  aggregate-address {{ aggr.prefix }} summary-only
+{% if vrf.ipv6_aggregates is defined %}
+{%   for agg in vrf.ipv6_aggregates %}
+  aggregate-address {{ agg.prefix }} summary-only
 {%   endfor %}
+{% endif %}
  exit-address-family
-!
 {% endfor %}
