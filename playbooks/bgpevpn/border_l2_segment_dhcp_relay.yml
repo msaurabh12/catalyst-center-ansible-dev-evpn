@@ -1,0 +1,146 @@
+---
+- name: Configure Border Handoff VLAN + Trunk + SVI
+  hosts: switches
+  gather_facts: no
+  connection: network_cli
+
+  vars_files:
+    - ../credentials.yml
+    - ./vars/border_l2_segment_dchp_relay.yml
+
+  tasks:
+
+    - name: Validate VLAN ID
+      ansible.builtin.assert:
+        that:
+          - bho.vlan.id is defined
+          - bho.vlan.id | int > 0
+          - bho.vlan.id | int < 4096
+        fail_msg: "Invalid VLAN ID. Must be between 1–4095."
+
+    - name: Validate VLAN name
+      ansible.builtin.assert:
+        that:
+          - bho.vlan.name is defined
+          - bho.vlan.name | length > 0
+        fail_msg: "VLAN name must be defined."
+
+    - name: Validate trunk interface name
+      ansible.builtin.assert:
+        that:
+          - bho.trunk_interface.name is defined
+          - bho.trunk_interface.name | length > 0
+        fail_msg: "Trunk interface name missing."
+
+    - name: Validate allowed VLANs list
+      ansible.builtin.assert:
+        that:
+          - bho.trunk_interface.allowed_vlans is defined
+          - bho.trunk_interface.allowed_vlans | length > 0
+        fail_msg: "Trunk interface must have at least one allowed VLAN."
+
+    - name: Validate SVI ID
+      ansible.builtin.assert:
+        that:
+          - bho.svi.id is defined
+          - bho.svi.id | int > 0
+          - bho.svi.id | int < 4096
+        fail_msg: "Invalid SVI ID."
+
+    - name: Validate IPv4 address + mask
+      ansible.builtin.assert:
+        that:
+          - bho.svi.ipv4.address | ipaddr
+          - bho.svi.ipv4.mask | ipaddr('netmask')
+        fail_msg: "Invalid IPv4 address or mask."
+
+    - name: Validate IPv4 helper address
+      ansible.builtin.assert:
+        that:
+          - bho.svi.ipv4.helper_address_global | ipaddr
+        fail_msg: "Invalid IPv4 helper address."
+
+    - name: Validate IPv6 address
+      ansible.builtin.assert:
+        that:
+          - bho.svi.ipv6.address | ipaddr('ipv6')
+        fail_msg: "Invalid IPv6 address."
+
+    - name: Validate IPv6 relay destination address
+      ansible.builtin.assert:
+        that:
+          - bho.svi.ipv6.relay_destination_global | ipaddr('ipv6')
+        fail_msg: "Invalid IPv6 relay destination address."
+
+    # -------------------------------------------
+    # 1. Render Jinja into variable
+    # -------------------------------------------
+    - name: Render l2_segment_dhcp_relay.j2 to a variable
+      ansible.builtin.set_fact:
+        rendered_l2_segment_dhcp_relay: "{{ lookup('template', './jinja_templates/l2_segment_dhcp_relay.j2') }}"
+
+    # -------------------------------------------
+    # 2. Debug rendered CLI
+    # -------------------------------------------
+    - name: Print rendered L2 Segment DHCP Relay CLI
+      ansible.builtin.debug:
+        var: rendered_l2_segment_dhcp_relay
+
+    # -------------------------------------------
+    # 3. Create template + deploy (DNAC)
+    # -------------------------------------------
+    - name: Create and deploy L2 Segment with Global DHCP Relay template
+      cisco.dnac.template_workflow_manager:
+        dnac_host: "{{ dnac_host }}"
+        dnac_port: "{{ dnac_port }}"
+        dnac_username: "{{ dnac_username }}"
+        dnac_password: "{{ dnac_password }}"
+        dnac_verify: "{{ dnac_verify }}"
+        dnac_version: "{{ dnac_version }}"
+        dnac_debug: "{{ dnac_debug }}"
+        dnac_log_level: DEBUG
+        dnac_log: true
+        config_verify: true
+        state: merged
+
+        config:
+          - configuration_templates:
+              project_name: "evpn_l2_segment_dhcp_relay"
+              template_name: "l2_segment_dhcp_relay_template"
+              template_content: "{{ rendered_l2_segment_dhcp_relay }}"
+              version_description: "Auto-generated L2 Segment with DHCP relay via Global VRF"
+              language: JINJA
+              software_type: "IOS-XE"
+              device_types:
+                - product_family: Switches and Hubs
+
+          - deploy_template:
+              project_name: "evpn_l2_segment_dhcp_relay"
+              template_name: "l2_segment_dhcp_relay_template"
+              force_push: true
+              template_parameters:
+                - param_name: "vlan_id"
+                  param_value: "{{ vlan.id }}"
+                - param_name: "vlan_name"
+                  param_value: "{{ vlan.name }}"
+                - param_name: "trunk_interface"
+                  param_value: "{{ interfaces.trunk }}"
+                - param_name: "vrf_name"
+                  param_value: "{{ vrf.name }}"
+                - param_name: "ipv4_address"
+                  param_value: "{{ ipv4.address }}"
+                - param_name: "ipv4_mask"
+                  param_value: "{{ ipv4.mask }}"
+                - param_name: "ipv4_helper"
+                  param_value: "{{ dhcp.ipv4.helper }}"
+                - param_name: "ipv6_address"
+                  param_value: "{{ ipv6.address }}"
+                - param_name: "ipv6_helper"
+                  param_value: "{{ dhcp.ipv6.helper }}"
+                - param_name: "relay_source"
+                  param_value: "{{ relay_source_intf }}"
+
+              device_details:
+                device_ips: "{{ devices_mgmt_ips }}"
+
+    

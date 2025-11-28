@@ -1,0 +1,27 @@
+bho:
+
+  vlan:
+    id: 401
+    name: "401_BHO_VLAN"
+
+  trunk_interface:
+    name: "GigabitEthernet1/0/2"
+    allowed_vlans:
+      - 401
+    mode: "trunk"
+
+  svi:
+    id: 401
+    vrf: "l3vn-1"
+
+    ipv4:
+      address: "188.0.1.1"
+      mask: "255.255.255.0"
+      dhcp_relay_source: "Loopback0"
+      helper_address_global: "199.0.1.1"
+
+    ipv6:
+      address: "2001:188:0:1::1/64"
+      relay_destination_global: "2001:199:0:1::1"
+      relay_source_interface: "Loopback0"
+      enable: true

@@ -1,0 +1,21 @@
+vlan {{ bho.vlan.id }}
+ name {{ bho.vlan.name }}
+!
+
+interface {{ bho.trunk_interface.name }}
+ switchport trunk allowed vlan {{ bho.trunk_interface.allowed_vlans | join(',') }}
+ switchport mode {{ bho.trunk_interface.mode }}
+!
+
+interface Vlan{{ bho.svi.id }}
+ vrf forwarding {{ bho.svi.vrf }}
+ ip dhcp relay source-interface {{ bho.svi.ipv4.dhcp_relay_source }}
+ ip address {{ bho.svi.ipv4.address }} {{ bho.svi.ipv4.mask }}
+ ip helper-address global {{ bho.svi.ipv4.helper_address_global }}
+ ipv6 address {{ bho.svi.ipv6.address }}
+{% if bho.svi.ipv6.enable %}
+ ipv6 enable
+{% endif %}
+ ipv6 dhcp relay destination global {{ bho.svi.ipv6.relay_destination_global }}
+ ipv6 dhcp relay source-interface {{ bho.svi.ipv6.relay_source_interface }}
+!
